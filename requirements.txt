@@ -1,0 +1,14 @@
+numpy
+pyarrow
+unidecode
+pandas
+structlog
+oracledb
+click>=8.1
+polars>=0.20
+pyyaml>=6.0
+pandas>=2.0
+structlog>=24.0
+faker>=24.0
+python-dotenv
+holidays
