@@ -113,7 +113,7 @@ BUCKET_ID           = "DIMENSION_ID"
 OVD_NO              = "OVD_NO"
 BUCKET_CODE         = "BUCKET_CODE"
 SBV_GROUP           = "SBV_GROUP"
-DESCRIPTION         = "DESCRIPTION"
+DESCRIPTION         = "DESCRIPTION_SBV"
 
 # ---------------------------------------------------------------------------
 # DIM_XLN_CARD

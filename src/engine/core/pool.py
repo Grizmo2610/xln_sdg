@@ -27,12 +27,9 @@ class PoolRegistry:
     need to resolve FK values — no full-table loads.
 
     Lifecycle:
-        - get()      → fetch from Oracle on first call, return cache on subsequent.
-        - refresh()  → force re-fetch from Oracle (call after INSERT into that DIM).
-        - invalidate()→ drop cache without re-fetching.
-
-    Args:
-        db: OracleClient (must already be connected).
+        - get()       → fetch from Oracle on first call, return cache on subsequent.
+        - refresh()   → force re-fetch from Oracle (call after INSERT into that DIM).
+        - invalidate() → drop cache without re-fetching.
     """
 
     def __init__(self, db: OracleClient) -> None:
@@ -55,19 +52,11 @@ class PoolRegistry:
 
         If already cached (and no where filter is requested), returns the
         cached copy.  Otherwise fetches from Oracle.
-
-        Args:
-            logical_key: Registry key, e.g. 'CUST', 'CONTRACT'.
-            columns:     Columns to fetch. Defaults to the minimal set
-                         derived from join_map.pool_columns_for().
-            where:       Optional WHERE clause (bypasses cache — use for
-                         targeted queries like prev_state).
-            params:      Bind params for the WHERE clause.
         """
         # Targeted WHERE queries always go to Oracle (not cached)
         if where:
-            table  = T.get(logical_key)
-            cols   = columns or _default_columns(logical_key, table)
+            table = T.get(logical_key)
+            cols  = columns or _default_columns(logical_key, table)
             return self._db.fetch_pool(table, cols, where=where, params=params)
 
         # Regular pool — use cache
@@ -86,10 +75,7 @@ class PoolRegistry:
             self._fetch_and_cache(key, columns=None)
 
     def invalidate(self, *logical_keys: str) -> None:
-        """
-        Drop cached pool(s) without re-fetching.
-        Next get() call will hit Oracle.
-        """
+        """Drop cached pool(s) without re-fetching."""
         for key in logical_keys:
             if key in self._cache:
                 del self._cache[key]
@@ -118,14 +104,20 @@ class PoolRegistry:
         table = T.get(logical_key)
         cols  = columns or _default_columns(logical_key, table)
         logger.info(
-            "PoolRegistry: fetching %s [%s] from Oracle …",
-            logical_key, ", ".join(cols),
+            "PoolRegistry: fetching pool [%s] from Oracle …", logical_key
         )
-        df = self._db.fetch_pool(table, cols)
-        self._cache[logical_key] = df
-        logger.info(
-            "PoolRegistry: %s cached — %d rows.", logical_key, len(df),
-        )
+        try:
+            df = self._db.fetch_pool(table, cols)
+            self._cache[logical_key] = df
+            logger.info(
+                "PoolRegistry: pool [%s] cached — %d rows.", logical_key, len(df)
+            )
+        except Exception as exc:
+            logger.error(
+                "PoolRegistry: failed to fetch pool [%s]: %s", logical_key, exc
+            )
+            logger.debug("Pool fetch error details:", exc_info=True)
+            raise
 
 
 def _default_columns(logical_key: str, table: TableDef) -> list[str]:
@@ -139,7 +131,6 @@ def _default_columns(logical_key: str, table: TableDef) -> list[str]:
     cols = join_map.pool_columns_for(logical_key)
     if cols:
         return cols
-    # Fallback for DIM tables not referenced by any FCT (e.g. standalone dims)
     if table.surrogate_key:
         return [table.surrogate_key]
     raise ValueError(

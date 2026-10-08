@@ -56,14 +56,18 @@ class OracleClient:
         if self._conn is not None:
             return
         logger.debug("Connecting to Oracle %s …", self._dsn)
-        self._conn = oracledb.connect(
-            user        = self._user,
-            password    = self._password,
-            dsn         = self._dsn,
-        )
-        # Return dates/timestamps as Python objects, not strings
-        self._conn.outputtypehandler = _output_type_handler
-        logger.info("Oracle connection established.")
+        try:
+            self._conn = oracledb.connect(
+                user        = self._user,
+                password    = self._password,
+                dsn         = self._dsn,
+            )
+            self._conn.outputtypehandler = _output_type_handler
+            logger.info("Oracle connection established.")
+        except oracledb.DatabaseError as exc:
+            logger.error("Failed to connect to Oracle (%s): %s", self._dsn, exc)
+            logger.debug("Connection error details:", exc_info=True)
+            raise ConnectionError(f"Oracle connection failed: {exc}") from exc
 
     def close(self) -> None:
         if self._conn is not None:
@@ -97,24 +101,33 @@ class OracleClient:
 
     def execute(self, sql: str, params: dict | list | None = None) -> None:
         """Execute a single DML/DDL statement (no result set)."""
-        with self._cursor() as cur:
-            cur.execute(sql, params or {})
-        self._connection.commit()
+        try:
+            with self._cursor() as cur:
+                cur.execute(sql, params or {})
+            self._connection.commit()
+        except oracledb.DatabaseError as exc:
+            logger.error("execute() failed: %s", exc)
+            logger.debug("SQL: %s | params: %s", sql, params, exc_info=True)
+            raise
 
     def select(self, sql: str, params: dict | list | None = None) -> pl.DataFrame:
         """
         Execute a SELECT and return the result as a Polars DataFrame.
         Column names are taken from cursor.description and uppercased.
         """
-        with self._cursor() as cur:
-            cur.execute(sql, params or {})
-            cols = [d[0].upper() for d in cur.description]
-            rows = cur.fetchall()
+        try:
+            with self._cursor() as cur:
+                cur.execute(sql, params or {})
+                cols = [d[0].upper() for d in cur.description]
+                rows = cur.fetchall()
+        except oracledb.DatabaseError as exc:
+            logger.error("SELECT failed: %s", exc)
+            logger.debug("SQL: %s | params: %s", sql, params, exc_info=True)
+            raise
 
         if not rows:
             return pl.DataFrame({c: [] for c in cols})
 
-        # Transpose list-of-rows → dict-of-columns for Polars
         transposed: dict[str, list] = {c: [] for c in cols}
         for row in rows:
             for c, v in zip(cols, row):
@@ -140,7 +153,6 @@ class OracleClient:
             return 0
 
         cols = table.insert_columns
-        # Verify all columns exist in the DataFrame
         missing = [c for c in cols if c not in df.columns]
         if missing:
             raise ValueError(
@@ -154,22 +166,33 @@ class OracleClient:
             f"VALUES ({placeholders})"
         )
 
-        # Convert only the needed columns to Python-native list-of-tuples
         data = df.select(list(cols)).rows()
-
         total = 0
-        with self._cursor() as cur:
-            for start in range(0, len(data), chunk_size):
-                chunk = data[start : start + chunk_size]
-                cur.executemany(sql, chunk)
-                total += len(chunk)
-                logger.debug(
-                    "insert(%s): %d / %d rows committed.",
-                    table.oracle_name, total, len(data),
-                )
-            self._connection.commit()
 
-        logger.info("insert(%s): %d rows total.", table.oracle_name, total)
+        try:
+            with self._cursor() as cur:
+                for start in range(0, len(data), chunk_size):
+                    chunk = data[start : start + chunk_size]
+                    end   = start + len(chunk)
+                    try:
+                        cur.executemany(sql, chunk)
+                        total += len(chunk)
+                        logger.debug(
+                            "insert(%s): rows %d–%d committed (%d total).",
+                            table.oracle_name, start + 1, end, total,
+                        )
+                    except oracledb.DatabaseError as exc:
+                        logger.error(
+                            "insert(%s): chunk %d–%d failed: %s",
+                            table.oracle_name, start + 1, end, exc,
+                        )
+                        logger.debug("Chunk insert error details:", exc_info=True)
+                        raise
+                self._connection.commit()
+        except oracledb.DatabaseError:
+            raise
+
+        logger.info("insert(%s): %d rows inserted.", table.oracle_name, total)
         return total
 
     def fetch_pool(
@@ -177,36 +200,33 @@ class OracleClient:
         table: TableDef,
         columns: Sequence[str],
         where: str | None = None,
-        params: dict | None = None,
+        params: dict | list | None = None,
     ) -> pl.DataFrame:
         """
         Lightweight SELECT of specific columns from a table.
         Never does SELECT * — only fetches exactly what the pool needs.
-
-        Args:
-            table:   TableDef of the DIM/FCT to query.
-            columns: Column names to SELECT.
-            where:   Optional WHERE clause string (no leading 'WHERE' keyword).
-            params:  Bind parameters for the WHERE clause.
-
-        Returns:
-            Polars DataFrame with the requested columns.
         """
         col_list = ", ".join(columns)
         sql = f"SELECT {col_list} FROM {table.oracle_name}"
         if where:
             sql += f" WHERE {where}"
-        logger.debug("fetch_pool: %s", sql)
-        return self.select(sql, params)
+        logger.debug("fetch_pool(%s): %s", table.oracle_name, sql)
+        try:
+            return self.select(sql, params)
+        except oracledb.DatabaseError as exc:
+            logger.error(
+                "fetch_pool(%s) failed: %s", table.oracle_name, exc
+            )
+            logger.debug("fetch_pool error details:", exc_info=True)
+            raise
 
     # ------------------------------------------------------------------
     # Utility queries
     # ------------------------------------------------------------------
 
-    def max_dayid(self, table: TableDef) -> str | None:
+    def max_dayid(self, table: TableDef) -> object | None:
         """
-        Return MAX(DAYID) from a table as a string, or None if the table is empty.
-        DAYID is stored as VARCHAR2 in format YYYYMMDD.
+        Return MAX(DAYID) from a table, or None if the table is empty.
         """
         sql = f"SELECT MAX(DAYID) FROM {table.oracle_name}"
         with self._cursor() as cur:
@@ -235,18 +255,13 @@ class OracleClient:
 
 
 # =============================================================================
-# Output type handler — return Python datetime objects instead of cx_Oracle LOB
+# Output type handler
 # =============================================================================
 
 def _output_type_handler(
     cursor: oracledb.Cursor,
     metadata: oracledb.FetchInfo,
 ) -> oracledb.DbType | None:
-    """
-    Ensure DATE and TIMESTAMP columns are returned as Python datetime objects.
-    oracledb returns them natively by default in thin mode; this handler
-    makes behaviour explicit and consistent in both thin and thick modes.
-    """
     if metadata.type_code in (oracledb.DB_TYPE_DATE, oracledb.DB_TYPE_TIMESTAMP):
         return cursor.var(oracledb.DB_TYPE_TIMESTAMP, arraysize=cursor.arraysize)
     return None

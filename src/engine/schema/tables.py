@@ -161,7 +161,7 @@ FCT_XLN_ACTIVE_LOAN = TableDef(
         FIRST_ACTIVED_DATE, LAST_ACTIVED_DATE,
         CAMPAIGN_ID, MAX_OVD_IN_MONTH,
         # FK columns
-        CUSTOMER_SK, CONTRACT_SK, COMPANY_SK, PRODUCT_SK,
+        CUSTOMER_SK, XLN_CONTRACT_SK, COMPANY_SK, PRODUCT_SK,
         BUCKET_SK, CARD_SK, SALES_SK,
     ),
     surrogate_key = None,
@@ -175,7 +175,7 @@ FCT_XLN_REPAYSCHEDULE = TableDef(
         SCH_FREQ, SCH_FREQ_CODE,
         BALANCE, BALANCE_PD, BALANCE_IN, BALANCE_PE, BALANCE_PS, BAL_PD_TOTAL,
         # FK columns
-        CUSTOMER_SK, CONTRACT_SK, COMPANY_SK, SALES_SK,
+        CUSTOMER_SK, XLN_CONTRACT_SK, COMPANY_SK, SALES_SK,
     ),
     surrogate_key = None,
 )
@@ -237,16 +237,36 @@ FCT_XLN_INT_WRITE_OFF = TableDef(
     surrogate_key = None,
 )
 
+# FCT_XLN_AFTER_COB_COLLECTION uses Vietnamese column names from the DDL.
+# This table is denormalized (no FK surrogates) — columns are raw strings
+# matching the actual Oracle DDL (ddd.md § 6.2.7).
+# Only the subset used by LoanGenerator is listed; extend as needed.
+_COB_DAYID          = "DAYID"
+_COB_MA_KH          = "MA_KHACH_HANG"
+_COB_TEN_KH         = "TEN_KHACH_HANG"
+_COB_SO_HD          = "SO_HOP_DONG"
+_COB_NGAY_MO        = "NGAY_MO"
+_COB_DAO_HAN        = "DAO_HAN"
+_COB_LOAI_TIEN      = "LOAI_TIEN"
+_COB_LOAI_GD        = "LOAI_GIAO_DICH"
+_COB_SO_TIEN_GD     = "SO_TIEN_GIAO_DICH"
+_COB_CATEGORY       = "CATEGORY"
+_COB_SECTOR         = "SECTOR"
+_COB_SEAB_PARTNER   = "SEAB_PARTNER"
+_COB_CAMPAIGN_ID    = "CAMPAIGN_ID"
+_COB_CONTRACT_REF   = "CONTRACT_REF"
+_COB_REF_VALUE_DATE = "REF_VALUE_DATE"
+_COB_REF_MAT_DATE   = "REF_MAT_DATE"
+
 FCT_XLN_AFTER_COB_COLLECTION = TableDef(
     oracle_name   = "FCT_XLN_AFTER_COB_COLLECTION",
     columns       = (
-        DAYID, CUSTOMER, CUSTOMER_NAME,
-        CONTRACT, CONTRACT_REF,
-        VALUE_DATE, MATURITY_DATE,
-        CURRENCY, CATEGORY,
-        SEAB_PARTNER, SECTOR,
-        CAMPAIGN_ID,
-        # no FK mapping (⬜ in JoinMap)
+        _COB_DAYID, _COB_MA_KH, _COB_TEN_KH,
+        _COB_SO_HD, _COB_NGAY_MO, _COB_DAO_HAN,
+        _COB_LOAI_TIEN, _COB_CATEGORY, _COB_SECTOR,
+        _COB_SEAB_PARTNER, _COB_CAMPAIGN_ID,
+        _COB_CONTRACT_REF, _COB_REF_VALUE_DATE, _COB_REF_MAT_DATE,
+        # no FK surrogate columns — ⬜ in JoinMap
     ),
     surrogate_key = None,
 )

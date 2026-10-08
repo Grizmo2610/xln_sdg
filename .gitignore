@@ -57,6 +57,7 @@ Thumbs.db
 sea_sdg/
 output/
 private/
+propensity/
 
 test.ipynb
 eda.ipynb

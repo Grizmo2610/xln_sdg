@@ -7,16 +7,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Iterator
 
 from engine.db.client import OracleClient
 from engine.schema import tables as T
 
 logger = logging.getLogger(__name__)
-
-# DAYID format used throughout Oracle
-_DAYID_FMT = "%Y%m%d"
 
 # The anchor FCT table used to determine the last loaded date
 _ANCHOR_TABLE = T.FCT_XLN_ACTIVE_LOAN
@@ -34,7 +31,7 @@ class SimClock:
     """
 
     def __init__(self, to_date: date, from_date: date | None = None) -> None:
-        self.to_date   = to_date
+        self.to_date    = to_date
         self._from_date = from_date   # None = "ask Oracle"
 
     # ------------------------------------------------------------------
@@ -45,12 +42,24 @@ class SimClock:
         """
         Query Oracle for the most recent DAYID in the anchor FCT table.
         Returns a date object, or None if the table is empty.
+
+        DAYID is a DATE column in Oracle; oracledb returns it as a
+        Python datetime object (via the output type handler in client.py).
         """
         raw = db.max_dayid(_ANCHOR_TABLE)
         if raw is None:
             logger.info("SimClock: anchor table is empty — no data loaded yet.")
             return None
-        loaded = _parse_dayid(raw)
+        # oracledb DATE → Python datetime; normalise to date
+        if isinstance(raw, datetime):
+            loaded = raw.date()
+        elif isinstance(raw, date):
+            loaded = raw
+        else:
+            raise ValueError(
+                f"SimClock: unexpected MAX(DAYID) type {type(raw)!r}: {raw!r}. "
+                "Expected datetime or date (DAYID column is DATE in Oracle)."
+            )
         logger.info("SimClock: last loaded date = %s", loaded)
         return loaded
 
@@ -88,25 +97,3 @@ class SimClock:
         while current <= self.to_date:
             yield current
             current += timedelta(days=1)
-
-    @staticmethod
-    def to_dayid(d: date) -> str:
-        """Convert a date to the YYYYMMDD string used as DAYID in Oracle."""
-        return d.strftime(_DAYID_FMT)
-
-    @staticmethod
-    def from_dayid(dayid: str) -> date:
-        """Parse a DAYID string back to a date object."""
-        return _parse_dayid(dayid)
-
-
-# =============================================================================
-# Internal helpers
-# =============================================================================
-
-def _parse_dayid(raw: str) -> date:
-    """Parse YYYYMMDD string → date. Raises ValueError on bad format."""
-    try:
-        return date(int(raw[:4]), int(raw[4:6]), int(raw[6:8]))
-    except (ValueError, IndexError) as exc:
-        raise ValueError(f"Cannot parse DAYID '{raw}' — expected YYYYMMDD.") from exc
