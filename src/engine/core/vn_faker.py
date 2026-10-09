@@ -20,6 +20,19 @@ _MIDDLE_NAMES_SINGLE: tuple[str, ...] = tuple(
     w for w in _MIDDLE_NAMES if " " not in unidecode(w).upper()
 )
 
+# CITY_LIST uses numeric city codes; the phone/street/CCCD tables below are
+# keyed by legacy region keys. Translate numeric -> legacy (unknown -> OTHER).
+_CODE_TO_REGION: dict[str, str] = {
+    "4": "HN", "8": "HCM", "31": "HP", "511": "DN", "71": "CT",
+    "650": "BD", "61": "BH", "72": "LA", "66": "TN", "64": "VT",
+}
+
+
+def _regions(codes) -> np.ndarray:
+    """Map array of numeric city codes to legacy region keys."""
+    return np.array([_CODE_TO_REGION.get(str(c), "OTHER") for c in codes], dtype=object)
+
+
 _CITY_TO_PROVINCE_CODE: dict[str, str] = {
     "HN":    "001",
     "HCM":   "079",
@@ -179,7 +192,7 @@ class VietnameseFaker:
             val = [x] if np.ndim(x) == 0 else x
             return np.broadcast_to(np.asarray(val, dtype=dtype), (n,))
 
-        city_arr   = _bcast(city_code, dtype=str)
+        city_arr   = _regions(_bcast(city_code, dtype=str))
         gender_arr = _bcast(gender, dtype=str)
         year_arr   = _bcast(birth_year, dtype=int)
 
@@ -217,10 +230,10 @@ class VietnameseFaker:
 
     def gen_address(self, city_code: np.ndarray | list) -> np.ndarray:
         """Generate addresses for an array of city codes. ASCII UPPERCASE, no real PII."""
-        codes   = np.asarray(city_code).astype(str)
+        raw     = np.asarray(city_code).astype(str)
+        codes   = _regions(raw)
         n       = len(codes)
         streets = np.empty(n, dtype=object)
-        cities  = np.empty(n, dtype=object)
 
         for region, street_arr in _STREET_NAMES_NP.items():
             mask  = (codes == region) if region != "OTHER" else ~np.isin(codes, _STREET_KNOWN)
@@ -228,7 +241,9 @@ class VietnameseFaker:
             if count == 0:
                 continue
             streets[mask] = street_arr[self.rng.integers(0, len(street_arr), size=count)]
-            cities[mask]  = CITY_NAMES.get(region, CITY_NAMES["OTHER"])
+
+        # real city name per row from the original numeric code
+        cities = np.array([CITY_NAMES.get(c, CITY_NAMES["OTHER"]) for c in raw], dtype=object)
 
         house_numbers = self.rng.integers(1, 500, size=n).astype(str)
         return np.char.add(

@@ -1,14 +1,3 @@
-# =============================================================================
-# pipeline/seed.py
-# SeedPipeline — run once when Oracle has no data.
-#
-# Step 1: Static DIM tables (Calendar, Bucket, LoanTxnCode)
-# Step 2: ReferenceGenerator → Company, Product, Salecode
-# Step 3: CustomerGenerator  → Cust, CustPII, Contract (in batches)
-# Step 4: PoolRegistry.refresh()
-# Step 5: LoanGenerator      → Card + all FCT tables, day by day
-# =============================================================================
-
 from __future__ import annotations
 
 import logging
@@ -27,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 _CUSTOMER_BATCH = 500
 _N_SALES_SEED   = 80
-
 
 class SeedPipeline:
     """
@@ -61,9 +49,7 @@ class SeedPipeline:
             start_date, end_date, n_customers,
         )
 
-        # ------------------------------------------------------------------
         # Step 1: Static reference DIM tables
-        # ------------------------------------------------------------------
         logger.info("Step 1/5: inserting static DIM tables (Calendar, Bucket, LoanTxnCode) …")
         try:
             for table, loader_fn in [
@@ -81,9 +67,7 @@ class SeedPipeline:
             logger.debug("Step 1 error details:", exc_info=True)
             raise
 
-        # ------------------------------------------------------------------
         # Step 2: ReferenceGenerator
-        # ------------------------------------------------------------------
         logger.info("Step 2/5: generating reference data (Company, Product, Salecode) …")
         try:
             ref_result = ReferenceGenerator().generate(
@@ -101,9 +85,7 @@ class SeedPipeline:
             logger.debug("Step 2 error details:", exc_info=True)
             raise
 
-        # ------------------------------------------------------------------
         # Step 3: CustomerGenerator — batches
-        # ------------------------------------------------------------------
         logger.info("Step 3/5: generating %d customers …", n_customers)
         cust_gen        = CustomerGenerator()
         cust_sk_off     = 0
@@ -149,9 +131,7 @@ class SeedPipeline:
 
         logger.info("Step 3/5: done.")
 
-        # ------------------------------------------------------------------
         # Step 4: Refresh pools
-        # ------------------------------------------------------------------
         logger.info("Step 4/5: refreshing pools (CUST, CONTRACT, BUCKET) …")
         try:
             self._pool.refresh("CUST", "CONTRACT", "BUCKET")
@@ -161,9 +141,7 @@ class SeedPipeline:
             logger.debug("Step 4 error details:", exc_info=True)
             raise
 
-        # ------------------------------------------------------------------
         # Step 5: LoanGenerator — one pass per day
-        # ------------------------------------------------------------------
         total_days = (end_date - start_date).days + 1
         logger.info(
             "Step 5/5: generating FCT tables for %d days (%s → %s) …",

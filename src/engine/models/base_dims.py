@@ -1,15 +1,3 @@
-# =============================================================================
-# models/base_dims.py
-# Static DIM loaders for tables that don't change daily:
-#   - DIM_XLN_CALENDAR
-#   - DIM_XLN_BUCKET
-#   - DIM_XLN_LOAN_TXN_CODE
-#
-# Each loader is a plain class with a generate() method — no inheritance,
-# no super().__init__(), no BaseGenerator (these have no FK pool deps).
-# All column names come from schema/columns.py — no hardcoded strings.
-# =============================================================================
-
 from __future__ import annotations
 
 from datetime import date
@@ -28,11 +16,6 @@ from engine.schema.columns import (
     # DIM_XLN_LOAN_TXN_CODE
     TXN_CODE_ID, TRANS_CODE, TRANS_NAME, TRANS_TYPE, LOAN_TYPE, TRANS_NAME_XLN,
 )
-
-
-# =============================================================================
-# CalendarDimLoader
-# =============================================================================
 
 class CalendarDimLoader:
     """
@@ -80,11 +63,6 @@ class CalendarDimLoader:
                 LAST_DAY_OF_MONTH, NO_DAY_OF_MONTH, NO_DAY_OF_QUARTER, NO_DAY_OF_YEAR,
             ])
         )
-
-
-# =============================================================================
-# BucketDimLoader
-# =============================================================================
 
 class BucketDimLoader:
     """
@@ -160,11 +138,6 @@ class BucketDimLoader:
             )
             .select([BUCKET_ID, OVD_NO, BUCKET_CODE, SBV_GROUP, DESCRIPTION, EFF_DATE, EXP_DATE])
         )
-
-
-# =============================================================================
-# LoanTxnCodeDimLoader
-# =============================================================================
 
 class LoanTxnCodeDimLoader:
     """

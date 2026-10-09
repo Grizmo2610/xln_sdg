@@ -1,16 +1,3 @@
-# =============================================================================
-# pipeline/daily.py
-# DailyPipeline — incremental daily run.
-#
-# For each missing day D:
-#   a. SCD2 churn: ReferenceGenerator.scd2_churn() → add new sales staff
-#   b. CustomerGenerator — new customers + contracts for the day
-#   c. PoolRegistry.refresh()
-#   d. Query prev_state from Oracle (FCT_XLN_ACTIVE_LOAN WHERE DAYID = D-1)
-#   e. LoanGenerator — generate FCT rows for D
-#   f. INSERT → Oracle, release prev_state
-# =============================================================================
-
 from __future__ import annotations
 
 import logging
@@ -28,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 _N_SALES_CHURN = 2
 
-
 class DailyPipeline:
     """
     Incremental daily pipeline. Called once per missing day by cli/commands.py.
@@ -44,9 +30,7 @@ class DailyPipeline:
         self._card_sk_off:  int | None = None
         self._sales_sk_off: int | None = None
 
-    # ------------------------------------------------------------------
     # Public
-    # ------------------------------------------------------------------
 
     def run(self, run_date: date, n_customers: int) -> None:
         logger.info(
@@ -171,9 +155,7 @@ class DailyPipeline:
         del prev_state
         logger.info("[%s] DailyPipeline complete.", run_date)
 
-    # ------------------------------------------------------------------
     # SK offset helpers
-    # ------------------------------------------------------------------
 
     def _next_cust_sk(self) -> int:
         row = self._db.select(

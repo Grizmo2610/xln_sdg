@@ -1,13 +1,3 @@
-# =============================================================================
-# generators/loan.py — refactored
-#
-# Thay đổi so với version cũ:
-#   - Dùng HazardModel (core/hazard.py) cho state-transition DPD
-#   - Dùng propensity.get_hazard(month) → hỗ trợ monthly override
-#   - Dùng SamplingEngine thay random.*  (vectorised)
-#   - Dùng config/listchoice + config/constant thay hardcode
-#   - Giữ nguyên logic no-orphan (mọi contract có ít nhất 1 FCT row)
-# =============================================================================
 from __future__ import annotations
 
 import logging
@@ -72,13 +62,10 @@ from engine.schema.columns import (
     SECTOR,
 )
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def _rid(prefix: str = "", n: int = 8) -> str:
     return prefix + "".join(str(rng.integers(0, 10)) for _ in range(n))
-
 
 def _classify(dpd: int) -> str:
     group = "N01"
@@ -87,18 +74,13 @@ def _classify(dpd: int) -> str:
             group = label
     return group
 
-
 def _build_lookup(df: pl.DataFrame, key_col: str, val_col: str) -> dict:
     return dict(zip(df[key_col].to_list(), df[val_col].to_list()))
-
 
 def _df(rows: list[dict]) -> pl.DataFrame:
     return pl.DataFrame(rows) if rows else pl.DataFrame()
 
-
-# ---------------------------------------------------------------------------
 # LoanGenerator
-# ---------------------------------------------------------------------------
 
 class LoanGenerator(BaseGenerator):
 
@@ -119,9 +101,7 @@ class LoanGenerator(BaseGenerator):
         cfg = prop.get_monthly(month)
         hazard = cfg
 
-        # ----------------------------------------------------------------
         # 1. Load pools
-        # ----------------------------------------------------------------
         cust_df     = pool.get("CUST")
         contract_df = pool.get("CONTRACT")
         company_df  = pool.get("COMPANY")
@@ -129,9 +109,7 @@ class LoanGenerator(BaseGenerator):
         bucket_df   = pool.get("BUCKET")
         sale_df     = pool.get("SALECODE")
 
-        # ----------------------------------------------------------------
         # 2. Build lookup dicts
-        # ----------------------------------------------------------------
         cust_sk_map     = _build_lookup(cust_df,     CUSTOMER,    CUST_KEY)
         cust_name_map   = _build_lookup(cust_df,     CUSTOMER,    SHORT_NAME)  # real name lookup
         contract_sk_map = _build_lookup(contract_df, CONTRACT,    CONTRACT_ID)
@@ -143,9 +121,7 @@ class LoanGenerator(BaseGenerator):
         def _bucket_sk(dpd: int) -> int:
             return bucket_map.get(dpd, bucket_map.get(0))
 
-        # ----------------------------------------------------------------
         # 3. Contract → customer mapping
-        # ----------------------------------------------------------------
         contract_to_cust: dict[str, str] = {}
         if mapping_df is not None and not mapping_df.is_empty():
             contract_to_cust = _build_lookup(mapping_df, CONTRACT, CUSTOMER)
@@ -155,9 +131,7 @@ class LoanGenerator(BaseGenerator):
             if cid not in contract_to_cust:
                 contract_to_cust[cid] = str(rng.choice(all_custs))
 
-        # ----------------------------------------------------------------
         # 4. Prev state lookup
-        # ----------------------------------------------------------------
         prev: dict[str, dict] = {}
         if prev_state is not None and not prev_state.is_empty():
             for row in prev_state.iter_rows(named=True):
@@ -168,9 +142,7 @@ class LoanGenerator(BaseGenerator):
                     "state":      row.get("STATE", "NORMAL") or "NORMAL",
                 }
 
-        # ----------------------------------------------------------------
         # 5. Pre-sample ALL random values vectorised — one call per array
-        # ----------------------------------------------------------------
         n_contracts = len(contract_df)
         rand_vals        = rng.random(n_contracts)
         fee_flags        = rng.random(n_contracts) < cfg["FEE_RATE"]
@@ -193,15 +165,13 @@ class LoanGenerator(BaseGenerator):
         card_status_arr  = rng.choice(L.CARD_STATUSES,      size=n_contracts)
         card_type_arr    = rng.choice(L.CARD_TYPES,         size=n_contracts)
         sector_arr       = rng.choice(L.SECTORS,            size=n_contracts)
-        pl_cat_arr       = rng.choice(L.PL_CATS,            size=n_contracts)
+        pl_cat_arr       = rng.choice(L.PL_CATS_FEE,        size=n_contracts)
         fee_tcode_arr    = rng.choice(L.TRANS_CODES,        size=n_contracts)
         fee_name_arr     = rng.choice(L.FEE_NAMES,          size=n_contracts)
-        wo_pl_cat_arr    = rng.choice(L.PL_CATS,            size=n_contracts)
+        wo_pl_cat_arr    = rng.choice(L.PL_CATS_WO,         size=n_contracts)
         n_txn_arr        = rng.integers(1, 3,               size=n_contracts)
 
-        # ----------------------------------------------------------------
         # 5b. Run HazardModel ONCE on the full batch (vectorised)
-        # ----------------------------------------------------------------
         contracts_list = contract_df[CONTRACT].to_list()
         datasource_list = [r.get(DATASOURCE, "LD") or "LD" for r in contract_df.iter_rows(named=True)]
         maturity_list   = [r.get(MATURITY_DATE) or (run_date + timedelta(days=365)) for r in contract_df.iter_rows(named=True)]
@@ -224,17 +194,13 @@ class LoanGenerator(BaseGenerator):
         new_states = hazard_df["STATE"].to_list()
         new_dpds   = hazard_df["DPD"].to_list()
 
-        # ----------------------------------------------------------------
         # 6. Output accumulators
-        # ----------------------------------------------------------------
         card_rows, active_loan_rows, repay_rows = [], [], []
         txn_rows, fee_rows = [], []
         bad_debt_rows, write_off_rows, cob_rows = [], [], []
         card_sk_seq = card_sk_offset
 
-        # ----------------------------------------------------------------
         # 7. Main loop — one pass per contract
-        # ----------------------------------------------------------------
         for idx, contract_row in enumerate(contract_df.iter_rows(named=True)):
           try:
             contract_id = contract_row[CONTRACT]

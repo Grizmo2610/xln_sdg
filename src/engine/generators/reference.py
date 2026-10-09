@@ -1,28 +1,3 @@
-# =============================================================================
-# generators/reference.py
-#
-# ReferenceGenerator — sinh các DIM table hoàn toàn độc lập (không FK):
-#   - DIM_XLN_COMPANY
-#   - DIM_XLN_PRODUCT
-#   - DIM_XLN_SALECODE
-#
-# Đặc điểm:
-#   - Không cần pool DIM nào → required_pools() = []
-#   - Chạy một lần ở seed time để sinh full bộ reference data.
-#   - Daily run chỉ gọi scd2_churn() để thêm nhân viên mới / đóng cũ.
-#
-# Output của generate() là dict[str, pl.DataFrame]:
-#   "COMPANY"  → INSERT into DIM_XLN_COMPANY
-#   "PRODUCT"  → INSERT into DIM_XLN_PRODUCT
-#   "SALECODE" → INSERT into DIM_XLN_SALECODE
-#
-# SCD2:
-#   EFF_DATE = ngày bản ghi có hiệu lực
-#   EXP_DATE = None  (NULL = đang active); khi expire thì set EXP_DATE = run_date
-#   Trong scope này chỉ INSERT rows mới — UPDATE rows cũ do pipeline xử lý
-#   nếu cần (hiện tại SeedPipeline + DailyPipeline chỉ INSERT).
-# =============================================================================
-
 from __future__ import annotations
 
 import random
@@ -50,11 +25,6 @@ from engine.schema.columns import (
     SALES_KEY, SALES_ID, SALES_NAME, SALES_CONTACT,
     T24_USER_NAME, SB_ID, STATUS_DATE, EMPLOYMENT,
 )
-
-
-# =============================================================================
-# Static reference data — tất cả fixed, không random từ đầu đến cuối
-# =============================================================================
 
 # Chi nhánh thực tế của SeABank (representative sample)
 # (city_code, city_name_vn, branch_code, branch_name_en, branch_name_vn, province, region_code, region_name)
@@ -101,32 +71,18 @@ _PRODUCTS: list[tuple[str, str, str]] = [
     ("CBNV",  "Vay ưu đãi CBNV",                       "Vay CBNV"),
 ]
 
-
-
-# =============================================================================
-# Helpers
-# =============================================================================
-
 def _rand_id(prefix: str = "", n: int = 6) -> str:
     return prefix + "".join(random.choices(string.digits, k=n))
-
 
 def _rand_phone() -> str:
     return "0" + "".join(random.choices(string.digits, k=9))
 
-
 def _rand_name() -> str:
     return random.choice(_LAST_NAMES) + " " + random.choice(_FIRST_NAMES)
-
 
 def _rand_date(start: date, end: date) -> date:
     delta = max((end - start).days, 0)
     return start + timedelta(days=random.randint(0, delta))
-
-
-# =============================================================================
-# ReferenceGenerator
-# =============================================================================
 
 class ReferenceGenerator(BaseGenerator):
     """
@@ -190,9 +146,7 @@ class ReferenceGenerator(BaseGenerator):
         """
         return self._gen_salecode(run_date, n=n_new, sk_offset=sk_offset_sales)
 
-    # ------------------------------------------------------------------
     # Private generators
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _gen_company(run_date: date, sk_offset: int) -> pl.DataFrame:

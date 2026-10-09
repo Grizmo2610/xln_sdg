@@ -1,9 +1,3 @@
-# =============================================================================
-# db/client.py
-# OracleClient — the only layer that speaks to Oracle.
-# All SQL is built here; no SQL strings anywhere else in the codebase.
-# =============================================================================
-
 from __future__ import annotations
 
 import os
@@ -48,9 +42,7 @@ class OracleClient:
         self._password  = os.environ["ORACLE_PASSWORD"]
         self._conn: oracledb.Connection | None = None
 
-    # ------------------------------------------------------------------
     # Connection lifecycle
-    # ------------------------------------------------------------------
 
     def connect(self) -> None:
         if self._conn is not None:
@@ -82,9 +74,7 @@ class OracleClient:
     def __exit__(self, *_: Any) -> None:
         self.close()
 
-    # ------------------------------------------------------------------
     # Internal helpers
-    # ------------------------------------------------------------------
 
     @property
     def _connection(self) -> oracledb.Connection:
@@ -95,9 +85,7 @@ class OracleClient:
     def _cursor(self) -> oracledb.Cursor:
         return self._connection.cursor()
 
-    # ------------------------------------------------------------------
     # Core operations
-    # ------------------------------------------------------------------
 
     def execute(self, sql: str, params: dict | list | None = None) -> None:
         """Execute a single DML/DDL statement (no result set)."""
@@ -220,9 +208,7 @@ class OracleClient:
             logger.debug("fetch_pool error details:", exc_info=True)
             raise
 
-    # ------------------------------------------------------------------
     # Utility queries
-    # ------------------------------------------------------------------
 
     def max_dayid(self, table: TableDef) -> object | None:
         """
@@ -242,6 +228,20 @@ class OracleClient:
             row = cur.fetchone()
         return row[0] if row else 0
 
+    def identity_columns(self, oracle_name: str) -> list[tuple[str, str]]:
+        """
+        Return [(column_name, generation_type)] for every identity column of a
+        table in the current schema. generation_type is 'ALWAYS' or 'BY DEFAULT'.
+        """
+        sql = (
+            "SELECT column_name, generation_type FROM user_tab_identity_cols "
+            "WHERE table_name = :1"
+        )
+        with self._cursor() as cur:
+            cur.execute(sql, [oracle_name.upper()])
+            rows = cur.fetchall()
+        return [(r[0], r[1].strip()) for r in rows]
+
     def table_exists(self, oracle_name: str) -> bool:
         """Check whether a table exists in the current schema."""
         sql = (
@@ -254,9 +254,6 @@ class OracleClient:
         return (row[0] if row else 0) > 0
 
 
-# =============================================================================
-# Output type handler
-# =============================================================================
 
 def _output_type_handler(
     cursor: oracledb.Cursor,

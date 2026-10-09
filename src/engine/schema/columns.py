@@ -1,26 +1,12 @@
-# =============================================================================
-# schema/columns.py
-# All column names as Python constants.
-# Source of truth: DDD-Thiết kế chi tiết datamart XLN V1.0 phase 2
-# =============================================================================
+DIM_KEY             = "DIMENSION_KEY"
+DIM_ID              = "DIMENSION_ID"
 
-# ---------------------------------------------------------------------------
-# Surrogate / dimension keys
-# ---------------------------------------------------------------------------
-DIM_KEY             = "DIMENSION_KEY"       # Generic surrogate key (most DIM tables)
-DIM_ID              = "DIMENSION_ID"        # Surrogate key variant (BUCKET, CONTRACT, CALENDAR)
-
-# ---------------------------------------------------------------------------
-# Common temporal columns
-# ---------------------------------------------------------------------------
 DAYID               = "DAYID"
 EFF_DATE            = "EFF_DATE"
 EXP_DATE            = "EXP_DATE"
 LOAD_DATE           = "LOAD_DATE"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_CUST
-# ---------------------------------------------------------------------------
 CUST_KEY            = "DIMENSION_KEY"
 CUSTOMER            = "CUSTOMER"
 SHORT_NAME          = "SHORT_NAME"
@@ -39,9 +25,7 @@ SECTOR              = "SECTOR"
 ACCOUNT_OFFICER     = "ACCOUNT_OFFICER"
 ACCOUNT_OFFICER_NAME = "ACCOUNT_OFFICER_NAME"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_CUST_PII
-# ---------------------------------------------------------------------------
 DATE_OF_BIRTH       = "DATE_OF_BIRTH"
 GENDER              = "GENDER"
 LEGAL_ID            = "LEGAL_ID"
@@ -52,10 +36,8 @@ EMAIL_T24           = "EMAIL_T24"
 ADDRESS_T24         = "ADDRESS_T24"
 SB_ID               = "SB_ID"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_CONTRACT
-# ---------------------------------------------------------------------------
-CONTRACT_ID         = "DIMENSION_ID"        # Surrogate key for contract
+CONTRACT_ID         = "DIMENSION_ID"
 CONTRACT            = "CONTRACT"
 DATASOURCE          = "DATASOURCE"
 CONTRACT_REF        = "CONTRACT_REF"
@@ -84,9 +66,7 @@ REF_MAT_DATE        = "REF_MAT_DATE"
 REF_CONTRACT_AMT    = "REF_CONTRACT_AMT"
 REF_CONTRACT_CCY    = "REF_CONTRACT_CCY"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_COMPANY
-# ---------------------------------------------------------------------------
 COMPANY_KEY         = "DIMENSION_KEY"
 COMPANY_CODE        = "COMPANY_CODE"
 COMPANY_NAME        = "COMPANY_NAME"
@@ -98,26 +78,20 @@ BRANCH_PROVINCE     = "BRANCH_PROVINCE"
 REGION_CODE         = "REGION_CODE"
 REGION_NAME         = "REGION_NAME"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_PRODUCT
-# ---------------------------------------------------------------------------
 PRODUCT_KEY         = "DIMENSION_KEY"
 PRODUCT_CODE        = "PRODUCT_CODE"
 PRODUCT_NAME        = "PRODUCT_NAME"
 PRODUCT_GROUP       = "PRODUCT_GROUP"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_BUCKET
-# ---------------------------------------------------------------------------
 BUCKET_ID           = "DIMENSION_ID"
 OVD_NO              = "OVD_NO"
 BUCKET_CODE         = "BUCKET_CODE"
 SBV_GROUP           = "SBV_GROUP"
 DESCRIPTION         = "DESCRIPTION_SBV"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_CARD
-# ---------------------------------------------------------------------------
 CARD_KEY            = "DIMENSION_KEY"
 CARD_ID             = "CARD_ID"
 MAIN_ID             = "MAIN_ID"
@@ -128,21 +102,14 @@ CUSTOMER_ID         = "CUSTOMER_ID"
 CARD_EXPIRE         = "CARD_EXPIRE"
 ACCOUNT_ID          = "ACCOUNT_ID"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_SALECODE
-# ---------------------------------------------------------------------------
 SALES_KEY           = "DIMENSION_KEY"
 SALES_ID            = "SALES_ID"
 SALES_NAME          = "SALES_NAME"
 SALES_CONTACT       = "SALES_CONTACT"
 T24_USER_NAME       = "T24_USER_NAME"
-# SB_ID already defined above
-# STATUS_DATE already defined above
-# EMPLOYMENT already defined above
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_LOAN_TXN_CODE
-# ---------------------------------------------------------------------------
 TXN_CODE_ID         = "ID"
 TRANS_CODE          = "TRANS_CODE"
 TRANS_NAME          = "TRANS_NAME"
@@ -150,9 +117,7 @@ TRANS_TYPE          = "TRANS_TYPE"
 LOAN_TYPE           = "LOAN_TYPE"
 TRANS_NAME_XLN      = "TRANS_NAME_XLN"
 
-# ---------------------------------------------------------------------------
 # DIM_XLN_CALENDAR
-# ---------------------------------------------------------------------------
 CAL_ID              = "DIMENSION_ID"
 YEAR                = "YEAR"
 MONTH               = "MONTH"
@@ -166,21 +131,17 @@ NO_DAY_OF_MONTH     = "NO_DAY_OF_MONTH"
 NO_DAY_OF_QUARTER   = "NO_DAY_OF_QUARTER"
 NO_DAY_OF_YEAR      = "NO_DAY_OF_YEAR"
 
-# ---------------------------------------------------------------------------
-# FK columns used in FCT tables
-# ---------------------------------------------------------------------------
+# FK columns in FCT tables
 CUSTOMER_SK         = "CUSTOMER_SK"
 CONTRACT_SK         = "CONTRACT_SK"
-XLN_CONTRACT_SK     = "XLN_CONTRACT_SK"    # FCT_XLN_LOAN_TXN uses this name
+XLN_CONTRACT_SK     = "XLN_CONTRACT_SK"
 COMPANY_SK          = "COMPANY_SK"
 PRODUCT_SK          = "PRODUCT_SK"
 BUCKET_SK           = "BUCKET_SK"
 CARD_SK             = "CARD_SK"
 SALES_SK            = "SALES_SK"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_ACTIVE_LOAN — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_ACTIVE_LOAN
 PD_CONTRACT         = "PD_CONTRACT"
 DISBURSEMENT_AMT    = "DISBURSEMENT_AMT"
 NO_DAYS_OVERDUE     = "NO_DAYS_OVERDUE"
@@ -203,9 +164,7 @@ FIRST_ACTIVED_DATE  = "FIRST_ACTIVED_DATE"
 LAST_ACTIVED_DATE   = "LAST_ACTIVED_DATE"
 MAX_OVD_IN_MONTH    = "MAX_OVD_IN_MONTH"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_REPAYSCHEDULE — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_REPAYSCHEDULE
 REPAYMENT_TYPE      = "REPAYMENT_TYPE"
 REPAYMENT_DATE      = "REPAYMENT_DATE"
 REPAYMENT_AMT       = "REPAYMENT_AMT"
@@ -215,9 +174,7 @@ SCH_FREQ            = "SCH_FREQ"
 SCH_FREQ_CODE       = "SCH_FREQ_CODE"
 BAL_PD_TOTAL        = "BAL_PD_TOTAL"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_LOAN_TXN — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_LOAN_TXN
 CONTRACT_MAIN       = "CONTRACT_MAIN"
 TRANS_DATE          = "TRANS_DATE"
 TRANS_AMOUNT_LCY    = "TRANS_AMOUNT_LCY"
@@ -252,13 +209,9 @@ CATEGORY_SK         = "CATEGORY_SK"
 TRANS_AMOUNT        = "TRANS_AMOUNT"
 SOURCE              = "SOURCE"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_CREDIT_FEE — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_CREDIT_FEE
 ENTRY_ID            = "ENTRY_ID"
 PL_CATEGORY         = "PL_CATEGORY"
-# TRANS_CODE already defined above
-# COMPANY_CODE already defined above (CO_CODE is used in DIM; COMPANY_CODE in COMPANY)
 COMPANY             = "COMPANY"
 FEE_AMT             = "FEE_AMT"
 FEE_AMT_LCY         = "FEE_AMT_LCY"
@@ -266,25 +219,20 @@ FEE_NAME            = "FEE_NAME"
 FEE_ID              = "FEE_ID"
 CUSTOMER_NAME       = "CUSTOMER_NAME"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_BAD_DEBT — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_BAD_DEBT
 CONTRACT_MD         = "CONTRACT_MD"
-CUSTOMER_ID_BD      = "CUSTOMER_ID"         # same col name, aliased to avoid clash
+CUSTOMER_ID_BD      = "CUSTOMER_ID"
 CCY                 = "CCY"
 PRINCIPAL_AMT       = "PRINCIPAL_AMT"
 REC_STATUS          = "REC_STATUS"
 FIRST_PRINCIPAL_AMT = "FIRST_PRINCIPAL_AMT"
 
-# ---------------------------------------------------------------------------
-# FCT_XLN_INT_WRITE_OFF — fact columns
-# ---------------------------------------------------------------------------
+# FCT_XLN_INT_WRITE_OFF
 CUSTOMER_ID_IWO     = "CUSTOMER_ID"
 AMOUNT              = "AMOUNT"
 AMOUNT_LCY          = "AMOUNT_LCY"
 NARRATIVE           = "NARRATIVE"
 NARRATIVE_ALL       = "NARRATIVE_ALL"
-COMPANY_CODE_IWO    = "COMPANY_CODE"        # raw company code (not FK)
+COMPANY_CODE_IWO    = "COMPANY_CODE"
 
-# Raw product code column in FCT_XLN_LOAN_TXN (not same as PRODUCT_CODE in DIM)
 PRODUCT             = "PRODUCT"

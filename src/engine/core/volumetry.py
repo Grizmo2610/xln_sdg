@@ -3,9 +3,9 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from config import propensity as prop
-from config.constant import VOLUMETRY_NOISE_PCT
-from config.random import rng
+from engine.config import propensity as prop
+from engine.config.constant import VOLUMETRY_NOISE_PCT
+from engine.config.random import rng
 
 
 class VolumetryManager:

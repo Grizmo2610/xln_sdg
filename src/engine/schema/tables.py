@@ -1,8 +1,3 @@
-# =============================================================================
-# schema/tables.py
-# All table definitions: Oracle name, columns, surrogate key, identity cols.
-# Source of truth: DDD-Thiết kế chi tiết datamart XLN V1.0 phase 2
-# =============================================================================
 
 from __future__ import annotations
 from dataclasses import dataclass
@@ -24,9 +19,6 @@ class TableDef:
         return tuple(c for c in self.columns if c not in excluded)
 
 
-# =============================================================================
-# DIM tables
-# =============================================================================
 
 DIM_XLN_CUST = TableDef(
     oracle_name   = "DIM_XLN_CUST",
@@ -145,9 +137,6 @@ DIM_XLN_CALENDAR = TableDef(
 )
 
 
-# =============================================================================
-# FCT tables
-# =============================================================================
 
 FCT_XLN_ACTIVE_LOAN = TableDef(
     oracle_name   = "FCT_XLN_ACTIVE_LOAN",
@@ -272,9 +261,6 @@ FCT_XLN_AFTER_COB_COLLECTION = TableDef(
 )
 
 
-# =============================================================================
-# REGISTRY — look up TableDef by logical key
-# =============================================================================
 
 REGISTRY: dict[str, TableDef] = {
     # DIM

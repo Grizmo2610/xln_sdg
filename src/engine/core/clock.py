@@ -1,8 +1,3 @@
-# =============================================================================
-# core/clock.py
-# SimClock — determines which dates need to be generated.
-# Queries Oracle for MAX(DAYID) and yields missing dates.
-# =============================================================================
 
 from __future__ import annotations
 
@@ -34,9 +29,7 @@ class SimClock:
         self.to_date    = to_date
         self._from_date = from_date   # None = "ask Oracle"
 
-    # ------------------------------------------------------------------
     # Public API
-    # ------------------------------------------------------------------
 
     def last_loaded_date(self, db: OracleClient) -> date | None:
         """

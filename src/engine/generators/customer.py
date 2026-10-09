@@ -1,6 +1,3 @@
-# =============================================================================
-# generators/customer.py — refactored
-# =============================================================================
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -92,8 +89,8 @@ class CustomerGenerator(BaseGenerator):
             birth_year=np.array([int(d[:4]) for d in dobs]),
         )
         open_dates = _rand_dates(date(CUST_OPEN_DATE_START_YEAR, 1, 1), run_date, n)
-        cls_arr    = SamplingEngine.weighted_choice(L.CUSTOMER_CLASSES, [0.6, 0.3, 0.1], n)
-        grp_arr    = SamplingEngine.weighted_choice(L.CUSTOMER_GROUPS,  [0.8, 0.2], n)
+        cls_arr    = SamplingEngine.weighted_choice(L.CUSTOMER_CLASSES, L.CUSTOMER_CLASS_WEIGHTS, n)
+        grp_arr    = SamplingEngine.weighted_choice(L.CUSTOMER_GROUPS,  L.CUSTOMER_GROUP_WEIGHTS, n)
         seg_arr    = SamplingEngine.uniform_choice(L.SEGMENTS, n)
         sec_arr    = SamplingEngine.uniform_choice(L.SECTORS,  n)
         emp_arr    = SamplingEngine.weighted_choice(L.EMPLOYMENTS, [0.9, 0.1], n)
@@ -130,7 +127,7 @@ class CustomerGenerator(BaseGenerator):
                 CITY_NAME:            str(cn[i]),
                 STATUS_DATE:          od,
                 EMPLOYMENT:           str(emp_arr[i]),
-                CUSTOMER_GROUP:       str(grp_arr[i]),
+                CUSTOMER_GROUP:       (str(grp_arr[i]) or None),
                 SEAB_CU_SEGMENT:      str(seg_arr[i]),
                 SECTOR:               str(sec_arr[i]),
                 ACCOUNT_OFFICER:      _rid("AO", 4),

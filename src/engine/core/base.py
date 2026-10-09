@@ -1,8 +1,3 @@
-# =============================================================================
-# core/base.py
-# BaseGenerator — abstract contract for all data generators.
-# Enforces pool validation before any generation happens.
-# =============================================================================
 
 from __future__ import annotations
 
@@ -114,17 +109,13 @@ class BaseGenerator(ABC):
         return result
 
 
-# =============================================================================
-# Exceptions
-# =============================================================================
+
 
 class MissingPoolError(RuntimeError):
     """Raised when a generator is called before its required pools are loaded."""
 
 
-# =============================================================================
-# Internal helpers
-# =============================================================================
+
 
 def _log_result(
     name: str,

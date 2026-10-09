@@ -1,8 +1,3 @@
-# =============================================================================
-# core/pool.py
-# PoolRegistry — session-scoped cache of DIM table data.
-# Fetches only the FK columns needed; never loads full tables.
-# =============================================================================
 
 from __future__ import annotations
 
@@ -36,9 +31,7 @@ class PoolRegistry:
         self._db    = db
         self._cache: dict[str, pl.DataFrame] = {}
 
-    # ------------------------------------------------------------------
     # Public API
-    # ------------------------------------------------------------------
 
     def get(
         self,
@@ -92,9 +85,7 @@ class PoolRegistry:
     def cached_keys(self) -> list[str]:
         return list(self._cache.keys())
 
-    # ------------------------------------------------------------------
     # Internal helpers
-    # ------------------------------------------------------------------
 
     def _fetch_and_cache(
         self,
